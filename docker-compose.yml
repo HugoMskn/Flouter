@@ -1,0 +1,52 @@
+services:
+  app:
+    build: .
+    read_only: true
+    user: "1000:1000"
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /app/data:size=2g,mode=1777,uid=1000,gid=1000
+      - /tmp:size=256m,mode=1777,uid=1000,gid=1000
+    environment:
+      MAX_UPLOAD_MB: "500"
+      DEFACE_TIMEOUT_SECONDS: "900"
+    expose:
+      - "8000"
+    networks:
+      - internal
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  proxy:
+    image: caddy:2-alpine
+    read_only: true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /data:mode=1777
+      - /config:mode=1777
+      - /tmp:mode=1777
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    ports:
+      - "80:80"
+    depends_on:
+      - app
+    networks:
+      - internal
+    restart: unless-stopped
+
+networks:
+  internal:
+    driver: bridge

@@ -1,0 +1,19 @@
+{
+	admin off
+	auto_https off
+}
+
+:80 {
+	log {
+		output discard
+	}
+
+	# keep in sync with MAX_UPLOAD_MB on the app service
+	request_body {
+		max_size 500MB
+	}
+
+	reverse_proxy app:8000 {
+		flush_interval -1
+	}
+}
